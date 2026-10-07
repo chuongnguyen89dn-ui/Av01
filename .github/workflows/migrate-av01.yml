@@ -1,0 +1,28 @@
+name: Migrate AV01 project
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/migrate-av01.yml'
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy current AV01 project from old repository
+        run: |
+          git clone --depth 1 --branch main https://github.com/chuongnguyen89dn-ui/missav.git /tmp/source
+          rsync -a --delete --exclude='.git' --exclude='.github/workflows/migrate-av01.yml' /tmp/source/ ./
+          mkdir -p .github/workflows
+          cp "$GITHUB_WORKSPACE/.github/workflows/migrate-av01.yml" /tmp/migrate-av01.yml 2>/dev/null || true
+          if [ -f /tmp/migrate-av01.yml ]; then cp /tmp/migrate-av01.yml .github/workflows/migrate-av01.yml; fi
+      - name: Commit migration
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "migrate: move AV01 project and 2120 catalog"
+          git push
